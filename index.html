@@ -245,7 +245,7 @@ function mode(t){var m=document.getElementById('md');if(m)m.textContent=t}
 function localInit(){try{var r=JSON.parse(localStorage.getItem(K)||'{}');S.d.projects=r.projects||[]}catch(e){}S.loaded=true;mode('Mode lokal (belum tersambung ke Google Sheets)');render()}
 function loadAll(silent){if(silent&&pend>0)return Promise.resolve();return api({action:'list'}).then(function(j){S.d.projects=j.projects;S.loaded=true;if(S.cur&&!P())S.cur=null;banner('');var a=document.activeElement;if(silent&&a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&document.getElementById('app').contains(a))return;render()}).catch(function(e){if(e.message!=='unauthorized')banner('Tidak bisa memuat dari Google Sheets: '+e.message);if(!S.loaded){S.loaded=true;render()}})}
 render();
-if(/PASTE_URL/.test(API_URL)){localInit()}else{DB=true;mode('Google Sheets');if(!TOK){askTok()}else{loadAll();setInterval(function(){loadAll(true)},60000)}}
+const API_URL = 'https://script.google.com/macros/s/AKfycbwRP_P1L4TX6SR8oSOF2OqPPjxjt9B8W2749IdwS7s59yH08Mch9H4_f3RdTJTr84l-Ew/exec';
 </script>
 </body>
 </html>
