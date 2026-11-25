@@ -96,6 +96,10 @@ label{font-size:12px;color:var(--mut);display:block;margin-bottom:3px}
 .doc.afs table td.lc.lf{border-top:1px solid #000}
 .doc.afs table td.lc.ll{border-bottom:1px solid #000}
 .doc td{overflow-wrap:anywhere}
+
+.doc table.kv{width:100%}
+.doc table.kv td:first-child{width:150px;white-space:nowrap}
+.doc table.kv td:last-child{text-align:left}
 </style>
 </head>
 <body>
@@ -117,7 +121,10 @@ var VEND={lki:CO,afs:{name:'Artha Furnika Solution',addr:'',signer:'Ibrahim',ban
 VEND.bt={name:'PT. BAHTERA TITIK TIGA INDONESIA (BTTI)',addr:'',signer:'',bank:'',logo:'',bast:'',kind:'termin',label:'BTTI'};
 function isT(p){return !!(VEND[p.vendor]&&VEND[p.vendor].kind==='termin')}
 function uf(p,u){return (u.fee===undefined||u.fee==='')?(+p.fee||0):(+u.fee||0)}
-function tot(p){return isT(p)?(p.units||[]).reduce(function(a,u){return a+uf(p,u)},0):sub(p.locs)}
+function disc(p){var s=sub(p.locs),v=+p.discVal||0;if(!p.discMode||v<=0)return 0;return Math.min(s,p.discMode==='pct'?Math.round(s*v/100):v)}
+function pre(x){return x.dc>0?[['Subtotal','',x.s],['Diskon','',x.dc],['Total Setelah Diskon','',x.n]]:[['Subtotal','',x.s]]}
+function discUI(p){return '<div><label>Diskon Quotation</label><select onchange="st(\'discMode\',this.value)"><option value="">Tidak ada</option><option value="pct"'+(p.discMode==='pct'?' selected':'')+'>Persentase (%)</option><option value="nom"'+(p.discMode==='nom'?' selected':'')+'>Nominal (Rp)</option></select></div>'+(p.discMode?fld('Nilai diskon ('+(p.discMode==='pct'?'%':'Rp')+')','discVal','number',1):'')}
+function tot(p){return isT(p)?(p.units||[]).reduce(function(a,u){return a+uf(p,u)},0):sub(p.locs)-disc(p)}
 function ensureT(p){if(isT(p)&&!p.units){p.units=[];p.fee=0;p.job='JASA INSTALASI INTERACTIVE FLAT PANEL (IFP)';p.pic=p.pic||'Up. Bagian Finance / Accounting';p.client=p.client||'PT. BAHTERA TITIK TIGA INDONESIA (BTTI)';p.tm=[{pct:50,no:'',dt:today(),due:today()},{pct:50,no:'',dt:today(),due:today()}]}}
 function tb(n){var s=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
 function f(n){n=Math.floor(n);if(n<12)return s[n];if(n<20)return f(n-10)+' belas';if(n<100)return f(Math.floor(n/10))+' puluh'+(n%10?' '+f(n%10):'');if(n<200)return 'seratus'+(n>100?' '+f(n-100):'');if(n<1e3)return f(Math.floor(n/100))+' ratus'+(n%100?' '+f(n%100):'');if(n<2e3)return 'seribu'+(n>1e3?' '+f(n-1e3):'');if(n<1e6)return f(Math.floor(n/1e3))+' ribu'+(n%1e3?' '+f(n%1e3):'');if(n<1e9)return f(Math.floor(n/1e6))+' juta'+(n%1e6?' '+f(n%1e6):'');return f(Math.floor(n/1e9))+' miliar'+(n%1e9?' '+f(n%1e9):'')}
@@ -220,7 +227,7 @@ function editor(b){
   return h+'<button class="sec" onclick="addLoc('+b+')">+ Titik lokasi</button>';
 }
 function dataView(){
-  return '<div class="card"><div class="g">'+vendSel(P())+fld('Nama project (internal)','name')+fld('No. Quotation','qtNo')+fld('Tanggal Quotation','qtDate','date')+fld('Perusahaan klien','client')+fld('Nama PIC','pic')+fld('Sapaan (Bapak/Ibu)','sal')+fld('Kontak','contact')+fld('Billing address (singkat)','billAddr')+fld('Alamat lengkap (BAST)','fullAddr')+fld('Project location','projLoc')+fld('Masa berlaku (hari)','valid','number',1)+fld('DP default (%)','dpPct','number',1)+'</div></div>'+editor(0);
+  return '<div class="card"><div class="g">'+vendSel(P())+fld('Nama project (internal)','name')+fld('No. Quotation','qtNo')+fld('Tanggal Quotation','qtDate','date')+fld('Perusahaan klien','client')+fld('Nama PIC','pic')+fld('Sapaan (Bapak/Ibu)','sal')+fld('Kontak','contact')+fld('Billing address (singkat)','billAddr')+fld('Alamat lengkap (BAST)','fullAddr')+fld('Project location','projLoc')+fld('Masa berlaku (hari)','valid','number',1)+fld('DP default (%)','dpPct','number',1)+discUI(P())+'</div></div>'+editor(0);
 }
 
 /* ---------- dokumen ---------- */
@@ -231,42 +238,42 @@ function dc(){return CO.hdr?'<div class="doc afs">':'<div class="doc">'}
 function sg(){return CO.sig?'<img class="sg" src="'+CO.sig+'" alt="">':'<br><br><br><br>'}
 function sigBlock(){return '<div style="margin-top:20px"><b>Hormat Kami</b>'+sg()+'<b>'+CO.signer+'</b></div>'}
 function qtDoc(p){
-  var h=dc()+'<div class="lh">'+lg()+CO.addr+'</div><h3 class="c">Price Quotation</h3><div class="row"><b>'+esc(p.qtNo)+'</b><span>'+dI(p.qtDate)+'</span></div>'
+  var h=dc()+'<div class="lh">'+lg()+CO.addr+'</div><h3 class="c">Price Quotation</h3><div style="text-align:right">'+dI(p.qtDate)+'<br><b>'+esc(p.qtNo)+'</b></div>'
   +'<p><b>Quotation For:</b><br><b>'+esc(p.client)+'</b><br><b>U/p, '+esc(p.sal)+' '+esc(p.pic)+'</b></p><table><thead><tr><th>No.</th><th>Titik Lokasi</th><th>Item</th><th>Qty</th><th>Rate</th><th>Rate Ext</th></tr></thead><tbody>';
   p.locs.forEach(function(l,li){l.items.forEach(function(i,k){
     h+='<tr>'+lcell(l,li,k)+'<td>'+itemCell(i)+'</td><td class="n">'+i.q+'</td><td class="n">'+rpI(i.r)+'</td><td class="n"><b>'+rpI(ev(i))+'</b></td></tr>'})});
-  h+='<tr class="b"><td colspan="5">Total Quoted Price:</td><td class="n">'+rpI(sub(p.locs))+'</td></tr></tbody></table>'
+  var sb=sub(p.locs),dcn=disc(p);h+=(dcn>0?'<tr class="b"><td colspan="5">Subtotal:</td><td class="n">'+rpI(sb)+'</td></tr><tr class="b"><td colspan="5">Diskon'+(p.discMode==='pct'?' '+(+p.discVal)+'%':'')+':</td><td class="n">- '+rpI(dcn)+'</td></tr>':'')+'<tr class="b"><td colspan="5">Total Quoted Price:</td><td class="n">'+rpI(sb-dcn)+'</td></tr></tbody></table>'
   +'<b>Terms &amp; Conditions:</b><ul><li>The prices quoted above are valid for '+p.valid+' days from the quotation date.</li><li>A '+p.dpPct+'% advance is required for order confirmation, with the balance payable upon delivery.</li></ul>'+sigBlock()+'</div>'+pr();
   return h;
 }
 function invDoc(p,no,dt,bill,locs,tot,note,title){
   var h=dc()+'<table class="nb"><tr><td>'+lg()+'</td><td></td><td class="n"><h2>'+(title||'INVOICE')+'</h2></td></tr><tr><td>'+CO.name+'<br>'+CO.addr+'</td><td class="n"><b>Invoice Number:</b><br><b>Date Issued:</b></td><td>'+esc(no)+'<br>'+dI(dt)+'</td></tr></table>'
-  +'<table class="nb"><tr><td><b>Biller Name:</b></td><td>'+esc(p.client)+'</td></tr><tr><td><b>Contact No.:</b></td><td>'+esc(p.contact)+'</td></tr><tr><td><b>Billing Address:</b></td><td>'+esc(bill)+'</td></tr></table>'
-  +'<table class="nb"><tr><td><b>Client Name:</b></td><td>'+esc(p.pic)+'</td></tr><tr><td><b>Project Location:</b></td><td>'+esc(p.projLoc)+'</td></tr></table>'
+  +'<table class="nb kv"><tr><td><b>Biller Name:</b></td><td>'+esc(p.client)+'</td></tr><tr><td><b>Contact No.:</b></td><td>'+esc(p.contact)+'</td></tr><tr><td><b>Billing Address:</b></td><td>'+esc(bill)+'</td></tr></table>'
+  +'<table class="nb kv"><tr><td><b>Client Name:</b></td><td>'+esc(p.pic)+'</td></tr><tr><td><b>Project Location:</b></td><td>'+esc(p.projLoc)+'</td></tr></table>'
   +'<table><tr><th>DESCRIPTION</th><th class="n">PRICE</th><th class="n">POTONGAN</th><th class="n">NILAI</th></tr>';
   locs.forEach(function(l){h+='<tr class="loc"><td colspan="4">'+esc(l.name)+'</td></tr>';l.items.forEach(function(i){var v=ev(i);h+='<tr><td>'+esc(i.n||i.t)+'</td><td class="n">Rp '+rpE(v)+'</td><td></td><td class="n">Rp '+rpE(v)+'</td></tr>'})});
   tot.forEach(function(t){h+='<tr class="'+(t[3]?'b':'')+'"><td colspan="2" style="text-align:right">'+t[0]+'</td><td class="n">'+t[1]+'</td><td class="n">Rp '+rpE(t[2])+'</td></tr>'});
   return h+'</table><b>Terms &amp; Conditions</b><br>Note : '+note+''+(CO.bank?'<br>"'+CO.bank+'"':'')+'<div style="margin-top:50px">Signature'+sg()+'<b>'+CO.signer+'</b></div><p class="c" style="margin-top:20px"><i>Thank You For Your Business</i></p></div>'+pr();
 }
-function split(p){var s=sub(p.locs),d=Math.round(s*p.dpPct/100);return{s:s,d:d,b:s-d}}
+function split(p){var s=sub(p.locs),dc=disc(p),n=s-dc,d=Math.round(n*p.dpPct/100);return{s:s,dc:dc,n:n,d:d,b:n-d}}
 function afsInv(p,k,x){var dpd=k==='dp',no=dpd?p.dpNo:p.plNo,dt=dpd?p.dpDate:p.plDate,B=CO.binfo||{},pc=+p.dpPct||0;
 var r2=function(n){return '<span class="rp">Rp.</span>'+Math.round(n).toLocaleString('id-ID')};
 var h='<div class="doc afs ai"><img class="wm" src="'+CO.logo+'" alt=""><div class="aih"><div><img class="aiz" src="'+CO.logo+'" alt="Artha Furnika Solution"></div><div class="air"><div class="ait">INVOICE '+(dpd?'DP':'PELUNASAN')+'</div><table class="nb"><tr><td>Invoice No</td><td>: '+esc(no)+'</td></tr><tr><td>Date</td><td>: '+dB(dt)+'</td></tr><tr><td>Quot Reff</td><td>: '+esc(p.qtNo)+'</td></tr></table></div></div><div class="aibar"></div>'
-+'<table class="nb"><tr><td>Bill To</td><td>: '+esc(p.client)+'</td></tr><tr><td>Project</td><td>: '+esc(p.projLoc)+'</td></tr><tr><td>Client</td><td>: '+esc(p.pic)+'</td></tr></table>'
++'<table class="nb kv"><tr><td>Bill To</td><td>: '+esc(p.client)+'</td></tr><tr><td>Project</td><td>: '+esc(p.projLoc)+'</td></tr><tr><td>Client</td><td>: '+esc(p.pic)+'</td></tr></table>'
 +'<table class="ait2"><tr><th>No</th><th>Deskripsi</th><th>Qty</th><th>Harga</th><th>Total</th><th>Ket</th></tr>';
 var n=0;p.locs.forEach(function(l){l.items.forEach(function(i){n++;h+='<tr><td class="c">'+n+'</td><td>'+esc(i.t)+'</td><td class="c">'+i.q+'</td><td>'+r2(i.r)+'</td><td>'+r2(ev(i))+'</td><td class="c">-</td></tr>'})});
-h+='</table><table class="aitot"><tr><td>Subtotal</td><td>'+r2(x.s)+'</td></tr><tr><td>DP '+pc+'%</td><td>'+r2(x.d)+'</td></tr><tr><td>Pelunasan '+(100-pc)+' %</td><td>'+r2(x.b)+'</td></tr><tr class="gt"><td>Grand Total</td><td>'+r2(dpd?x.d:x.b)+'</td></tr></table>'
+h+='</table><table class="aitot"><tr><td>Subtotal</td><td>'+r2(x.s)+'</td></tr>'+(x.dc>0?'<tr><td>Diskon</td><td>'+r2(x.dc)+'</td></tr><tr><td>Total Setelah Diskon</td><td>'+r2(x.n)+'</td></tr>':'')+'<tr><td>DP '+pc+'%</td><td>'+r2(x.d)+'</td></tr><tr><td>Pelunasan '+(100-pc)+' %</td><td>'+r2(x.b)+'</td></tr><tr class="gt"><td>Grand Total</td><td>'+r2(dpd?x.d:x.b)+'</td></tr></table>'
 +'<div class="aihd">Bank Informasi</div><ul class="ail"><li><table class="nb"><tr><td>Bank</td><td>: '+esc(B.bank)+'</td></tr><tr><td>Nama Akun</td><td>: '+esc(B.an)+'</td></tr><tr><td>Nomor Rekening</td><td>: '+esc(B.no)+'</td></tr></table></li></ul>'
 +'<div class="aihd">Syarat &amp; Ketentuan</div><ul class="ail"><li>Invoice merupakan dokumen penagihan resmi</li><li>Note : Down Payement '+pc+'% Pelunasan '+(100-pc)+'%</li><li>'+esc(B.phone)+'</li></ul>'
 +'<div style="margin-top:18px"><b>Hormat Kami</b>'+sg()+'<b>'+esc(CO.signer)+'</b><br><i>'+esc(CO.name)+'</i></div></div>'+pr();
 return h}
-function dpDoc(p){var x=split(p);if(CO.hdr)return afsInv(p,'dp',x);return invDoc(p,p.dpNo,p.dpDate,p.billAddr,p.locs,[['Subtotal','',x.s],['DOWN PAYMENT',p.dpPct+'%',x.d],['BALANCE PAYABLE',(100-p.dpPct)+'%',x.b],['Grand Total','',x.d,1]],'Down Payment '+p.dpPct+' % &amp; Pelunasan '+(100-p.dpPct)+' %.','INVOICE DP')}
-function plDoc(p){var x=split(p);if(CO.hdr)return afsInv(p,'pl',x);return invDoc(p,p.plNo,p.plDate,p.billAddr,p.locs,[['Subtotal','',x.s],['BALANCE PAYABLE',(100-p.dpPct)+'%',x.b],['Grand Total','',x.b,1]],'Down Payment '+p.dpPct+' % &amp; Pelunasan '+(100-p.dpPct)+' %.')}
+function dpDoc(p){var x=split(p);if(CO.hdr)return afsInv(p,'dp',x);return invDoc(p,p.dpNo,p.dpDate,p.billAddr,p.locs,pre(x).concat([['DOWN PAYMENT',p.dpPct+'%',x.d],['BALANCE PAYABLE',(100-p.dpPct)+'%',x.b],['Grand Total','',x.d,1]]),'Down Payment '+p.dpPct+' % &amp; Pelunasan '+(100-p.dpPct)+' %.','INVOICE DP')}
+function plDoc(p){var x=split(p);if(CO.hdr)return afsInv(p,'pl',x);return invDoc(p,p.plNo,p.plDate,p.billAddr,p.locs,pre(x).concat([['BALANCE PAYABLE',(100-p.dpPct)+'%',x.b],['Grand Total','',x.b,1]]),'Down Payment '+p.dpPct+' % &amp; Pelunasan '+(100-p.dpPct)+' %.')}
 function adDoc(p){var a=p.ad,s=sub(a.locs);return invDoc(p,a.no,a.date,a.bill,a.locs,[['Subtotal','',s],['Full Payment 100%','',s],['Discount','',+a.disc||0],['Grand Total','',s-(+a.disc||0),1]],'Full Payment 100 %.')}
 function bastDoc(p){
   var h=dc()+'<div class="lh">'+lg()+CO.addr+'</div><h3 class="c" style="text-decoration:underline">BERITA ACARA SERAH TERIMA BARANG</h3>'
-  +'<p>Pada hari ini tanggal '+dB(p.bastDate)+' kami yang bertanda tangan dibawah ini masing - masing :</p><table class="nb"><tr><td>Nama</td><td>: '+CO.signer+'</td></tr><tr><td>Alamat</td><td>: '+CO.addr+'</td></tr></table>'
-  +'<p>Kepada</p><table class="nb"><tr><td>Nama</td><td>: '+esc(p.client)+'</td></tr><tr><td>Alamat</td><td>: '+esc(p.fullAddr)+'</td></tr></table>'
+  +'<p>Pada hari ini tanggal '+dB(p.bastDate)+' kami yang bertanda tangan dibawah ini masing - masing :</p><table class="nb kv"><tr><td>Nama</td><td>: '+CO.signer+'</td></tr><tr><td>Alamat</td><td>: '+CO.addr+'</td></tr></table>'
+  +'<p>Kepada</p><table class="nb kv"><tr><td>Nama</td><td>: '+esc(p.client)+'</td></tr><tr><td>Alamat</td><td>: '+esc(p.fullAddr)+'</td></tr></table>'
   +'<table><thead><tr><th>Item No.</th><th>Titik Lokasi</th><th>Item</th><th>Qty</th><th>Satuan</th></tr></thead><tbody>';
   bLocs(p).forEach(function(l,li){l.items.forEach(function(i,k){h+='<tr>'+lcell(l,li,k)+'<td>'+itemCell(i)+'</td><td class="n">'+i.q+'</td><td>'+esc(i.u)+'</td></tr>'})});
   return h+'</tbody></table><p>Telah menyelesaikan serah terima barang <b>'+esc(p.client.toUpperCase())+'</b> pada tanggal '+dB(p.bastDate)+' dalam keadaan baik, baru dan lengkap berupa :</p><p>Demikian Berita Acara Serah Terima Barang ini di buat untuk dipergunakan sebagaimana mestinya.</p>'
